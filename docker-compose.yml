@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dave-social-ai
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:./dev.db
+      - COMFYUI_API_URL=http://comfyui:8188
+      - REDIS_URL=redis://redis:6379
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-secure-key-here}
+    volumes:
+      - ./data:/app/data
+      - ./public/images:/app/public/images
+      - ./public/sessions:/app/public/sessions
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - dave-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: dave-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - dave-network
+
+  # Optional: ComfyUI for image generation
+  # comfyui:
+  #   image: ghcr.io/ai-dock/comfyui:latest
+  #   container_name: dave-comfyui
+  #   ports:
+  #     - "8188:8188"
+  #   volumes:
+  #     - comfyui-models:/ComfyUI/models
+  #     - comfyui-output:/ComfyUI/output
+  #   restart: unless-stopped
+  #   networks:
+  #     - dave-network
+
+volumes:
+  redis-data:
+  # comfyui-models:
+  # comfyui-output:
+
+networks:
+  dave-network:
+    driver: bridge

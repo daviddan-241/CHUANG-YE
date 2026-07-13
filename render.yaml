@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: dave-social-ai
+    runtime: node
+    plan: free
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:./dev.db
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: COMFYUI_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: BRAND_A_NAME
+        value: VelocityEdge
+      - key: BRAND_B_NAME
+        value: ChuangYe
+    disk:
+      name: dave-data
+      mountPath: /app/data
+      sizeGB: 1

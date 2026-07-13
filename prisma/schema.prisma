@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Brand {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  persona     String   // "ChuangYe" | "VelocityEdge"
+  description String?
+  avatar      String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts       Post[]
+  sessions    Session[]
+  analytics   Analytics[]
+  dms         DM[]
+  images      BrandImage[]
+  credentials PlatformCredential[]
+}
+
+model PlatformCredential {
+  id          String   @id @default(uuid())
+  brandId     String
+  brand       Brand    @relation(fields: [brandId], references: [id])
+  platform    String
+  username    String
+  password    String   // encrypted
+  sessionId   String?
+  isActive    Boolean  @default(true)
+  lastLogin   DateTime?
+  fingerprint String?  // JSON string
+  proxy       String?  // JSON string
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([brandId, platform, username])
+}
+
+model Post {
+  id            String    @id @default(uuid())
+  brandId       String
+  brand         Brand     @relation(fields: [brandId], references: [id])
+  text          String
+  imagePrompt   String?
+  imagePath     String?
+  platform      String
+  status        String    @default("draft") // draft, scheduled, posting, posted, failed
+  scheduledTime DateTime?
+  postedTime    DateTime?
+  externalId    String?
+  engagement    String?   // JSON string - likes, comments, shares, views
+  error         String?
+  retryCount    Int       @default(0)
+  hash          String    @unique // content hash for dedup
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([brandId, platform, status])
+  @@index([scheduledTime])
+}
+
+model Analytics {
+  id        String   @id @default(uuid())
+  brandId   String
+  brand     Brand    @relation(fields: [brandId], references: [id])
+  platform  String
+  metric    String   // impressions, likes, followers, dms, conversions, revenue
+  value     Float
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([brandId, platform, date])
+}
+
+model Session {
+  id          String   @id @default(uuid())
+  brandId     String
+  brand       Brand    @relation(fields: [brandId], references: [id])
+  platform    String
+  cookieJson  String   // encrypted cookies
+  localStorage String  // encrypted localStorage
+  userAgent   String
+  viewport    String   // JSON string
+  expiry      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([brandId, platform])
+}
+
+model DM {
+  id          String   @id @default(uuid())
+  brandId     String
+  brand       Brand    @relation(fields: [brandId], references: [id])
+  platform    String
+  userHandle  String
+  message     String
+  reply       String?
+  status      String   @default("received") // received, replied, followed_up, converted, ignored
+  triggerWord String?
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([brandId, platform, status])
+}
+
+model BrandImage {
+  id        String   @id @default(uuid())
+  brandId   String
+  brand     Brand    @relation(fields: [brandId], references: [id])
+  type      String   // lifestyle, payment, carousel, whiteboard, analytics
+  path      String
+  prompt    String
+  metadata  String?  // JSON string
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([brandId, type, isUsed])
+}
+
+model Schedule {
+  id          String   @id @default(uuid())
+  brandId     String
+  platform    String
+  cronExpression String
+  isActive    Boolean  @default(true)
+  lastRun     DateTime?
+  nextRun     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  action      String
+  platform    String?
+  brandId     String?
+  details     String?
+  status      String   @default("success")
+  screenshot  String?
+  metadata    String?  // JSON string
+  createdAt   DateTime @default(now())
+
+  @@index([action, createdAt])
+}
+
+model Setting {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+  updatedAt DateTime @updatedAt
+}
+
+model Topic {
+  id        String   @id @default(uuid())
+  topic     String
+  angle     String
+  platform  String
+  source    String   // twitter, reddit, google_trends
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isUsed, platform])
+}
+
+model BurnerAccount {
+  id          String   @id @default(uuid())
+  platform    String
+  username    String
+  password    String   // encrypted
+  isActive    Boolean  @default(true)
+  lastUsed    DateTime?
+  sessionData String?  // encrypted
+  createdAt   DateTime @default(now())
+
+  @@unique([platform, username])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  text      String
+  platform  String
+  language  String   @default("zh")
+  isActive  Boolean  @default(true)
+  usageCount Int     @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Conversion {
+  id            String   @id @default(uuid())
+  brandId       String
+  platform      String
+  userHandle    String
+  amount        Float
+  currency      String   @default("CNY")
+  status        String   @default("pending") // pending, confirmed, delivered
+  paymentMethod String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([brandId, status])
+}
