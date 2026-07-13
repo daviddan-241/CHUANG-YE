@@ -1,77 +1,142 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Settings,
-  Globe,
-  Shield,
-  Clock,
-  Zap,
-  Bell,
-  Database,
-  Key,
-  Sliders,
-  Save,
-  RefreshCw,
-  User,
-  Palette
+  Settings, Sliders, Globe, User, Bell, Key, Palette,
+  Save, Phone, MessageSquare, CheckCircle2, Loader2,
+  AlertCircle, Send, Bot, Zap, ExternalLink, Shield,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
   const [settings, setSettings] = useState({
-    // General
-    autoPostEnabled: true,
-    autoReplyEnabled: true,
-    engagementBoostEnabled: true,
-    dryRunMode: false,
-    
-    // Posting Limits
-    maxPostsPerDay: 3,
-    minHoursBetweenPosts: 4,
-    maxAutoRepliesPerDay: 50,
-    maxEngagementsPerDay: 100,
-    
-    // Proxy
+    headless: true,
+    dailyPostLimit: 10,
+    minDelay: 30,
+    maxDelay: 120,
+    workingHours: '08:00-22:00',
+    timezone: 'Asia/Shanghai',
     proxyEnabled: false,
     proxyUrl: '',
     proxyUsername: '',
     proxyPassword: '',
-    
-    // Persona
-    activePersona: 'ChuangYe',
-    
-    // Notifications
-    telegramAlertsEnabled: true,
-    telegramChatId: '',
-    emailAlertsEnabled: false,
-    emailAddress: '',
-    
-    // API Keys
+    personaName: 'ChuangYe',
+    personaBio: 'Entrepreneur | Passive Income | AI Automation',
+    notifyOnPost: true,
+    notifyOnError: true,
+    groqApiKey: '',
     openaiApiKey: '',
-    comfyuiUrl: 'http://localhost:8188',
-    
-    // Appearance
+    comfyuiUrl: '',
     theme: 'dark',
-    accentColor: 'cyan'
+    accentColor: 'cyan',
   });
 
-  const handleSave = () => {
-    // Save settings to localStorage or API
+  // Telegram real-user auth state
+  const [tgApiId, setTgApiId] = useState('');
+  const [tgApiHash, setTgApiHash] = useState('');
+  const [tgPhone, setTgPhone] = useState('');
+  const [tgCode, setTgCode] = useState('');
+  const [tg2fa, setTg2fa] = useState('');
+  const [tgBrandId, setTgBrandId] = useState('brandA');
+  const [tgStep, setTgStep] = useState<'idle' | 'code_sent' | 'authenticated' | 'loading'>('idle');
+  const [tgError, setTgError] = useState('');
+  const [tgConnected, setTgConnected] = useState(false);
+
+  // Groq test state
+  const [groqTesting, setGroqTesting] = useState(false);
+  const [groqStatus, setGroqStatus] = useState<'idle' | 'ok' | 'error'>('idle');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('dave-settings');
+    if (saved) {
+      try { setSettings(prev => ({ ...prev, ...JSON.parse(saved) })); } catch (_) {}
+    }
+    // Check Telegram connection status
+    checkTelegramStatus();
+  }, []);
+
+  async function checkTelegramStatus() {
+    try {
+      const res = await fetch(`/api/telegram/auth/status?brandId=${tgBrandId}`);
+      const data = await res.json();
+      setTgConnected(data.connected);
+      if (data.step === 'code_sent') setTgStep('code_sent');
+      if (data.connected) setTgStep('authenticated');
+    } catch (_) {}
+  }
+
+  async function sendTelegramCode() {
+    setTgError('');
+    if (!tgPhone) { setTgError('Enter your phone number (international format, e.g. +8613800138000)'); return; }
+    setTgStep('loading');
+    try {
+      const res = await fetch('/api/telegram/auth/phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brandId: tgBrandId, phone: tgPhone }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send code');
+      setTgStep('code_sent');
+    } catch (err: any) {
+      setTgError(err.message);
+      setTgStep('idle');
+    }
+  }
+
+  async function verifyTelegramCode() {
+    setTgError('');
+    if (!tgCode) { setTgError('Enter the code from Telegram'); return; }
+    setTgStep('loading');
+    try {
+      const res = await fetch('/api/telegram/auth/code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brandId: tgBrandId, code: tgCode, password: tg2fa || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid code');
+      setTgStep('authenticated');
+      setTgConnected(true);
+    } catch (err: any) {
+      setTgError(err.message);
+      setTgStep('code_sent');
+    }
+  }
+
+  async function testGroqConnection() {
+    if (!settings.groqApiKey) { setGroqStatus('error'); return; }
+    setGroqTesting(true);
+    setGroqStatus('idle');
+    try {
+      const res = await fetch('/api/content/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: 'passive income test', platform: 'twitter', length: 'short' }),
+      });
+      setGroqStatus(res.ok ? 'ok' : 'error');
+    } catch (_) {
+      setGroqStatus('error');
+    } finally {
+      setGroqTesting(false);
+    }
+  }
+
+  function handleSave() {
     localStorage.setItem('dave-settings', JSON.stringify(settings));
-    alert('Settings saved!');
-  };
+    alert('✅ Settings saved!');
+  }
 
   const tabs = [
     { id: 'general', label: 'General', icon: Settings },
+    { id: 'telegram', label: 'Telegram Login', icon: MessageSquare },
+    { id: 'ai', label: 'AI / Keys', icon: Zap },
     { id: 'limits', label: 'Posting Limits', icon: Sliders },
     { id: 'proxy', label: 'Proxy', icon: Globe },
     { id: 'persona', label: 'Persona', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'api', label: 'API Keys', icon: Key },
-    { id: 'appearance', label: 'Appearance', icon: Palette }
+    { id: 'appearance', label: 'Appearance', icon: Palette },
   ];
 
   return (
@@ -80,461 +145,447 @@ export default function SettingsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Settings</h1>
-          <p className="text-sm text-gray-400 mt-1">Configure DAVE's behavior and preferences</p>
+          <p className="text-sm text-gray-400 mt-1">Configure DAVE's behaviour and integrations</p>
         </div>
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
           onClick={handleSave}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg text-sm font-medium hover:shadow-lg hover:shadow-cyan-500/25 transition-shadow"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg text-sm font-medium"
         >
-          <Save className="w-4 h-4" />
-          Save Settings
+          <Save className="w-4 h-4" />Save Settings
         </motion.button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar Tabs */}
+        {/* Sidebar */}
         <div className="glass-card p-4 rounded-xl">
           <nav className="space-y-1">
-            {tabs.map(tab => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                    activeTab === tab.id
-                      ? "bg-white/10 text-white"
-                      : "text-gray-400 hover:text-white hover:bg-white/5"
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  activeTab === tab.id
+                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+                {tab.id === 'telegram' && tgConnected && (
+                  <span className="ml-auto w-2 h-2 rounded-full bg-green-400" />
+                )}
+              </button>
+            ))}
           </nav>
         </div>
 
-        {/* Settings Content */}
+        {/* Content */}
         <div className="lg:col-span-3 glass-card p-6 rounded-xl">
-          {/* General Settings */}
-          {activeTab === 'general' && (
+
+          {/* ── TELEGRAM LOGIN ── */}
+          {activeTab === 'telegram' && (
             <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-white">General Settings</h2>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                  <div>
-                    <div className="text-sm font-medium text-white">Auto-Post</div>
-                    <div className="text-xs text-gray-400">Automatically publish scheduled posts</div>
-                  </div>
-                  <button
-                    onClick={() => setSettings(s => ({ ...s, autoPostEnabled: !s.autoPostEnabled }))}
-                    className={cn(
-                      "w-12 h-6 rounded-full relative transition-colors",
-                      settings.autoPostEnabled ? "bg-cyan-500" : "bg-white/20"
-                    )}
-                  >
-                    <div className={cn(
-                      "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-                      settings.autoPostEnabled ? "right-1" : "left-1"
-                    )} />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                  <div>
-                    <div className="text-sm font-medium text-white">Auto-Reply</div>
-                    <div className="text-xs text-gray-400">Automatically respond to DMs</div>
-                  </div>
-                  <button
-                    onClick={() => setSettings(s => ({ ...s, autoReplyEnabled: !s.autoReplyEnabled }))}
-                    className={cn(
-                      "w-12 h-6 rounded-full relative transition-colors",
-                      settings.autoReplyEnabled ? "bg-cyan-500" : "bg-white/20"
-                    )}
-                  >
-                    <div className={cn(
-                      "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-                      settings.autoReplyEnabled ? "right-1" : "left-1"
-                    )} />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                  <div>
-                    <div className="text-sm font-medium text-white">Engagement Boost</div>
-                    <div className="text-xs text-gray-400">Automatically like, comment, and follow</div>
-                  </div>
-                  <button
-                    onClick={() => setSettings(s => ({ ...s, engagementBoostEnabled: !s.engagementBoostEnabled }))}
-                    className={cn(
-                      "w-12 h-6 rounded-full relative transition-colors",
-                      settings.engagementBoostEnabled ? "bg-cyan-500" : "bg-white/20"
-                    )}
-                  >
-                    <div className={cn(
-                      "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-                      settings.engagementBoostEnabled ? "right-1" : "left-1"
-                    )} />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                  <div>
-                    <div className="text-sm font-medium text-white">Dry Run Mode</div>
-                    <div className="text-xs text-gray-400">Preview actions without actually posting</div>
-                  </div>
-                  <button
-                    onClick={() => setSettings(s => ({ ...s, dryRunMode: !s.dryRunMode }))}
-                    className={cn(
-                      "w-12 h-6 rounded-full relative transition-colors",
-                      settings.dryRunMode ? "bg-yellow-500" : "bg-white/20"
-                    )}
-                  >
-                    <div className={cn(
-                      "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-                      settings.dryRunMode ? "right-1" : "left-1"
-                    )} />
-                  </button>
-                </div>
+              <div>
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-cyan-400" />
+                  Telegram Real User Login
+                </h2>
+                <p className="text-sm text-gray-400 mt-1">
+                  Log in with your phone number — works exactly like the Telegram app.
+                  DAVE can then post to groups, reply to DMs, and manage channels.
+                </p>
               </div>
-            </div>
-          )}
 
-          {/* Posting Limits */}
-          {activeTab === 'limits' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-white">Posting Limits</h2>
-              
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Max Posts Per Day (per platform)
-                  </label>
-                  <div className="flex items-center gap-4">
+              {/* Step 0 — API Credentials */}
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-blue-300 flex items-center gap-2">
+                  <Key className="w-4 h-4" />Step 1 — Telegram API Credentials
+                </h3>
+                <p className="text-xs text-gray-400">
+                  Get free API credentials from{' '}
+                  <a href="https://my.telegram.org/apps" target="_blank" rel="noreferrer"
+                    className="text-cyan-400 underline inline-flex items-center gap-1">
+                    my.telegram.org <ExternalLink className="w-3 h-3" />
+                  </a>
+                  {' '}→ API development tools → Create application
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">App api_id</label>
                     <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={settings.maxPostsPerDay}
-                      onChange={(e) => setSettings(s => ({ ...s, maxPostsPerDay: parseInt(e.target.value) }))}
-                      className="flex-1"
+                      type="text" value={tgApiId} onChange={e => setTgApiId(e.target.value)}
+                      placeholder="12345678"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
                     />
-                    <span className="text-white font-mono w-8 text-center">{settings.maxPostsPerDay}</span>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">App api_hash</label>
+                    <input
+                      type="password" value={tgApiHash} onChange={e => setTgApiHash(e.target.value)}
+                      placeholder="abc123def456..."
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
+                    />
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Minimum Hours Between Posts
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="range"
-                      min="1"
-                      max="12"
-                      value={settings.minHoursBetweenPosts}
-                      onChange={(e) => setSettings(s => ({ ...s, minHoursBetweenPosts: parseInt(e.target.value) }))}
-                      className="flex-1"
-                    />
-                    <span className="text-white font-mono w-8 text-center">{settings.minHoursBetweenPosts}h</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Max Auto-Replies Per Day
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="range"
-                      min="10"
-                      max="100"
-                      step="10"
-                      value={settings.maxAutoRepliesPerDay}
-                      onChange={(e) => setSettings(s => ({ ...s, maxAutoRepliesPerDay: parseInt(e.target.value) }))}
-                      className="flex-1"
-                    />
-                    <span className="text-white font-mono w-12 text-center">{settings.maxAutoRepliesPerDay}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Max Engagements Per Day
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="range"
-                      min="50"
-                      max="500"
-                      step="50"
-                      value={settings.maxEngagementsPerDay}
-                      onChange={(e) => setSettings(s => ({ ...s, maxEngagementsPerDay: parseInt(e.target.value) }))}
-                      className="flex-1"
-                    />
-                    <span className="text-white font-mono w-12 text-center">{settings.maxEngagementsPerDay}</span>
-                  </div>
-                </div>
+                <p className="text-xs text-yellow-400/80 flex items-start gap-1">
+                  <Shield className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                  Set these as TELEGRAM_API_ID and TELEGRAM_API_HASH in your Render environment variables.
+                </p>
               </div>
-            </div>
-          )}
 
-          {/* Proxy Settings */}
-          {activeTab === 'proxy' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-white">Proxy Settings</h2>
-              
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg mb-4">
-                <div>
-                  <div className="text-sm font-medium text-white">Enable Proxy</div>
-                  <div className="text-xs text-gray-400">Route all traffic through proxy</div>
-                </div>
-                <button
-                  onClick={() => setSettings(s => ({ ...s, proxyEnabled: !s.proxyEnabled }))}
-                  className={cn(
-                    "w-12 h-6 rounded-full relative transition-colors",
-                    settings.proxyEnabled ? "bg-cyan-500" : "bg-white/20"
-                  )}
+              {/* Brand selector */}
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Which brand account?</label>
+                <select
+                  value={tgBrandId}
+                  onChange={e => setTgBrandId(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
                 >
-                  <div className={cn(
-                    "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-                    settings.proxyEnabled ? "right-1" : "left-1"
-                  )} />
-                </button>
+                  <option value="brandA">ChuangYe</option>
+                  <option value="brandB">VelocityEdge</option>
+                </select>
               </div>
 
-              {settings.proxyEnabled && (
-                <div className="space-y-4">
+              {/* Auth flow */}
+              {tgStep === 'authenticated' || tgConnected ? (
+                <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+                  <CheckCircle2 className="w-6 h-6 text-green-400 flex-shrink-0" />
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">
-                      Proxy URL (HTTP/SOCKS5)
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.proxyUrl}
-                      onChange={(e) => setSettings(s => ({ ...s, proxyUrl: e.target.value }))}
-                      placeholder="http://proxy:port or socks5://proxy:port"
-                      className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
-                    />
+                    <p className="text-sm font-medium text-green-300">Telegram Connected ✓</p>
+                    <p className="text-xs text-gray-400 mt-0.5">DAVE is logged in and can post, reply to DMs, and manage groups.</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Step 2 — Phone Number */}
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-cyan-400" />Step 2 — Your Phone Number
+                    </h3>
+                    <div className="flex gap-3">
+                      <input
+                        type="tel" value={tgPhone}
+                        onChange={e => setTgPhone(e.target.value)}
+                        placeholder="+8613800138000"
+                        disabled={tgStep === 'code_sent'}
+                        className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50 disabled:opacity-50"
+                      />
+                      <motion.button
+                        whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                        onClick={sendTelegramCode}
+                        disabled={tgStep === 'loading' || tgStep === 'code_sent'}
+                        className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 rounded-lg text-sm hover:bg-cyan-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {tgStep === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Send Code
+                      </motion.button>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      Include country code, e.g. +86 for China, +1 for US
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-2">
-                        Username (optional)
-                      </label>
+                  {/* Step 3 — Verification Code */}
+                  {(tgStep === 'code_sent' || tgStep === 'loading') && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                      className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3"
+                    >
+                      <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                        <Bot className="w-4 h-4 text-cyan-400" />Step 3 — Enter Code from Telegram
+                      </h3>
+                      <p className="text-xs text-gray-400">Telegram sent a code to your phone or another Telegram device.</p>
                       <input
-                        type="text"
-                        value={settings.proxyUsername}
-                        onChange={(e) => setSettings(s => ({ ...s, proxyUsername: e.target.value }))}
-                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                        type="text" value={tgCode}
+                        onChange={e => setTgCode(e.target.value)}
+                        placeholder="12345"
+                        maxLength={6}
+                        className="w-40 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xl tracking-widest text-center focus:outline-none focus:border-cyan-500/50"
                       />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-2">
-                        Password (optional)
-                      </label>
-                      <input
-                        type="password"
-                        value={settings.proxyPassword}
-                        onChange={(e) => setSettings(s => ({ ...s, proxyPassword: e.target.value }))}
-                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-cyan-500"
-                      />
-                    </div>
-                  </div>
+                      {/* Optional 2FA */}
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">2FA Password (if enabled)</label>
+                        <input
+                          type="password" value={tg2fa}
+                          onChange={e => setTg2fa(e.target.value)}
+                          placeholder="Leave empty if no 2FA"
+                          className="w-full max-w-xs bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
+                        />
+                      </div>
+                      <motion.button
+                        whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                        onClick={verifyTelegramCode}
+                        disabled={tgStep === 'loading' || !tgCode}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {tgStep === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                        Verify & Connect
+                      </motion.button>
+                    </motion.div>
+                  )}
+                </>
+              )}
+
+              {tgError && (
+                <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {tgError}
                 </div>
               )}
             </div>
           )}
 
-          {/* Persona Settings */}
-          {activeTab === 'persona' && (
+          {/* ── AI / KEYS ── */}
+          {activeTab === 'ai' && (
             <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-white">Persona Selector</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button
-                  onClick={() => setSettings(s => ({ ...s, activePersona: 'ChuangYe' }))}
-                  className={cn(
-                    "p-6 rounded-xl border-2 transition-all text-left",
-                    settings.activePersona === 'ChuangYe'
-                      ? "border-cyan-500 bg-cyan-500/10"
-                      : "border-white/10 hover:border-white/20"
-                  )}
-                >
-                  <div className="text-2xl mb-3">👔</div>
-                  <h3 className="text-lg font-semibold text-white mb-2">ChuangYe (创业)</h3>
-                  <p className="text-sm text-gray-400">
-                    Professional strategist, data-driven, calm, authoritative. 
-                    MBA INSEAD, 18+ years experience.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {['Professional', 'Data-driven', 'Strategic'].map(tag => (
-                      <span key={tag} className="px-2 py-1 text-xs bg-white/10 text-gray-300 rounded-full">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => setSettings(s => ({ ...s, activePersona: 'VelocityEdge' }))}
-                  className={cn(
-                    "p-6 rounded-xl border-2 transition-all text-left",
-                    settings.activePersona === 'VelocityEdge'
-                      ? "border-purple-500 bg-purple-500/10"
-                      : "border-white/10 hover:border-white/20"
-                  )}
-                >
-                  <div className="text-2xl mb-3">⚡</div>
-                  <h3 className="text-lg font-semibold text-white mb-2">VelocityEdge</h3>
-                  <p className="text-sm text-gray-400">
-                    Energetic, motivational, direct. 
-                    Aggressive growth hacker, hustle culture advocate.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {['Energetic', 'Motivational', 'Aggressive'].map(tag => (
-                      <span key={tag} className="px-2 py-1 text-xs bg-white/10 text-gray-300 rounded-full">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </button>
+              <div>
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-cyan-400" />AI Configuration
+                </h2>
+                <p className="text-sm text-gray-400 mt-1">DAVE uses Groq for free AI generation — no cost at all.</p>
               </div>
-            </div>
-          )}
 
-          {/* Notifications */}
-          {activeTab === 'notifications' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-white">Notification Settings</h2>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+              {/* Groq (free) */}
+              <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-medium text-white">Telegram Alerts</div>
-                    <div className="text-xs text-gray-400">Receive alerts via Telegram bot</div>
+                    <h3 className="text-sm font-semibold text-green-300 flex items-center gap-2">
+                      <Zap className="w-4 h-4" />Groq AI — FREE ✓
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Uses llama-3.3-70b-versatile. Get a free key at{' '}
+                      <a href="https://console.groq.com" target="_blank" rel="noreferrer"
+                        className="text-cyan-400 underline">console.groq.com</a>
+                    </p>
                   </div>
-                  <button
-                    onClick={() => setSettings(s => ({ ...s, telegramAlertsEnabled: !s.telegramAlertsEnabled }))}
-                    className={cn(
-                      "w-12 h-6 rounded-full relative transition-colors",
-                      settings.telegramAlertsEnabled ? "bg-cyan-500" : "bg-white/20"
-                    )}
-                  >
-                    <div className={cn(
-                      "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-                      settings.telegramAlertsEnabled ? "right-1" : "left-1"
-                    )} />
-                  </button>
+                  {groqStatus === 'ok' && <CheckCircle2 className="w-5 h-5 text-green-400" />}
+                  {groqStatus === 'error' && <AlertCircle className="w-5 h-5 text-red-400" />}
                 </div>
-
-                {settings.telegramAlertsEnabled && (
-                  <div className="pl-4">
-                    <label className="block text-sm font-medium text-gray-400 mb-2">
-                      Telegram Chat ID
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.telegramChatId}
-                      onChange={(e) => setSettings(s => ({ ...s, telegramChatId: e.target.value }))}
-                      placeholder="Your Telegram chat ID"
-                      className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
-                    />
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                  <div>
-                    <div className="text-sm font-medium text-white">Email Alerts</div>
-                    <div className="text-xs text-gray-400">Receive alerts via email</div>
-                  </div>
-                  <button
-                    onClick={() => setSettings(s => ({ ...s, emailAlertsEnabled: !s.emailAlertsEnabled }))}
-                    className={cn(
-                      "w-12 h-6 rounded-full relative transition-colors",
-                      settings.emailAlertsEnabled ? "bg-cyan-500" : "bg-white/20"
-                    )}
-                  >
-                    <div className={cn(
-                      "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
-                      settings.emailAlertsEnabled ? "right-1" : "left-1"
-                    )} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* API Keys */}
-          {activeTab === 'api' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-white">API Configuration</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    OpenAI API Key (optional)
-                  </label>
+                <div className="flex gap-3">
                   <input
                     type="password"
-                    value={settings.openaiApiKey}
-                    onChange={(e) => setSettings(s => ({ ...s, openaiApiKey: e.target.value }))}
-                    placeholder="sk-..."
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                    value={settings.groqApiKey}
+                    onChange={e => setSettings(s => ({ ...s, groqApiKey: e.target.value }))}
+                    placeholder="gsk_..."
+                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-green-500/50"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Used for AI content generation (optional)</p>
+                  <motion.button
+                    whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                    onClick={testGroqConnection}
+                    disabled={groqTesting || !settings.groqApiKey}
+                    className="px-4 py-2 bg-green-500/20 border border-green-500/40 text-green-300 rounded-lg text-sm hover:bg-green-500/30 disabled:opacity-50"
+                  >
+                    {groqTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Test'}
+                  </motion.button>
                 </div>
+                <p className="text-xs text-yellow-400/80 flex items-start gap-1">
+                  <Shield className="w-3 h-3 mt-0.5" />
+                  Set GROQ_API_KEY in your Render env vars — never paste keys in code.
+                </p>
+              </div>
 
+              {/* OpenAI (optional) */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-3">
+                <h3 className="text-sm font-semibold text-gray-300">OpenAI (optional, paid)</h3>
+                <p className="text-xs text-gray-400">Only needed if you want GPT-4 quality over Groq's free llama-3.</p>
+                <input
+                  type="password"
+                  value={settings.openaiApiKey}
+                  onChange={e => setSettings(s => ({ ...s, openaiApiKey: e.target.value }))}
+                  placeholder="sk-..."
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
+                />
+              </div>
+
+              {/* ComfyUI */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-3">
+                <h3 className="text-sm font-semibold text-gray-300">ComfyUI / Stable Diffusion (optional)</h3>
+                <p className="text-xs text-gray-400">Local image generation server URL.</p>
+                <input
+                  type="text"
+                  value={settings.comfyuiUrl}
+                  onChange={e => setSettings(s => ({ ...s, comfyuiUrl: e.target.value }))}
+                  placeholder="http://localhost:8188"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── GENERAL ── */}
+          {activeTab === 'general' && (
+            <div className="space-y-6">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Settings className="w-5 h-5 text-cyan-400" />General Settings
+              </h2>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { label: 'Timezone', key: 'timezone', placeholder: 'Asia/Shanghai' },
+                  { label: 'Working Hours', key: 'workingHours', placeholder: '08:00-22:00' },
+                ].map(field => (
+                  <div key={field.key}>
+                    <label className="text-xs text-gray-400 mb-1 block">{field.label}</label>
+                    <input
+                      type="text"
+                      value={(settings as any)[field.key]}
+                      onChange={e => setSettings(s => ({ ...s, [field.key]: e.target.value }))}
+                      placeholder={field.placeholder}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-3">
+                <div
+                  onClick={() => setSettings(s => ({ ...s, headless: !s.headless }))}
+                  className={`relative w-12 h-6 rounded-full cursor-pointer transition-colors ${settings.headless ? 'bg-cyan-500' : 'bg-gray-600'}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.headless ? 'translate-x-7' : 'translate-x-1'}`} />
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    ComfyUI URL
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.comfyuiUrl}
-                    onChange={(e) => setSettings(s => ({ ...s, comfyuiUrl: e.target.value }))}
-                    placeholder="http://localhost:8188"
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Local ComfyUI server for image generation</p>
+                  <p className="text-sm text-white">Headless Browser Mode</p>
+                  <p className="text-xs text-gray-400">On = invisible browser (recommended for servers)</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Appearance */}
+          {/* ── POSTING LIMITS ── */}
+          {activeTab === 'limits' && (
+            <div className="space-y-6">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Sliders className="w-5 h-5 text-cyan-400" />Posting Limits
+              </h2>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: 'Daily Post Limit', key: 'dailyPostLimit' },
+                  { label: 'Min Delay (sec)', key: 'minDelay' },
+                  { label: 'Max Delay (sec)', key: 'maxDelay' },
+                ].map(field => (
+                  <div key={field.key}>
+                    <label className="text-xs text-gray-400 mb-1 block">{field.label}</label>
+                    <input
+                      type="number"
+                      value={(settings as any)[field.key]}
+                      onChange={e => setSettings(s => ({ ...s, [field.key]: parseInt(e.target.value) }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── PROXY ── */}
+          {activeTab === 'proxy' && (
+            <div className="space-y-6">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Globe className="w-5 h-5 text-cyan-400" />Proxy Settings
+              </h2>
+              <div className="flex items-center gap-3">
+                <div
+                  onClick={() => setSettings(s => ({ ...s, proxyEnabled: !s.proxyEnabled }))}
+                  className={`relative w-12 h-6 rounded-full cursor-pointer transition-colors ${settings.proxyEnabled ? 'bg-cyan-500' : 'bg-gray-600'}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.proxyEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
+                </div>
+                <p className="text-sm text-white">Enable Proxy</p>
+              </div>
+              {settings.proxyEnabled && (
+                <div className="grid grid-cols-1 gap-3">
+                  {[
+                    { label: 'Proxy URL', key: 'proxyUrl', placeholder: 'http://proxy:8080' },
+                    { label: 'Username', key: 'proxyUsername', placeholder: 'Optional' },
+                    { label: 'Password', key: 'proxyPassword', placeholder: 'Optional', type: 'password' },
+                  ].map(field => (
+                    <div key={field.key}>
+                      <label className="text-xs text-gray-400 mb-1 block">{field.label}</label>
+                      <input
+                        type={field.type || 'text'}
+                        value={(settings as any)[field.key]}
+                        onChange={e => setSettings(s => ({ ...s, [field.key]: e.target.value }))}
+                        placeholder={field.placeholder}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── PERSONA ── */}
+          {activeTab === 'persona' && (
+            <div className="space-y-6">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <User className="w-5 h-5 text-cyan-400" />Persona Settings
+              </h2>
+              <div className="space-y-4">
+                {[
+                  { label: 'Persona Name', key: 'personaName', placeholder: 'ChuangYe' },
+                  { label: 'Bio / Tagline', key: 'personaBio', placeholder: 'Entrepreneur | Passive Income | AI' },
+                ].map(field => (
+                  <div key={field.key}>
+                    <label className="text-xs text-gray-400 mb-1 block">{field.label}</label>
+                    <input
+                      type="text"
+                      value={(settings as any)[field.key]}
+                      onChange={e => setSettings(s => ({ ...s, [field.key]: e.target.value }))}
+                      placeholder={field.placeholder}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500/50"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── NOTIFICATIONS ── */}
+          {activeTab === 'notifications' && (
+            <div className="space-y-6">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Bell className="w-5 h-5 text-cyan-400" />Notifications
+              </h2>
+              {[
+                { label: 'Notify on successful post', key: 'notifyOnPost' },
+                { label: 'Notify on errors', key: 'notifyOnError' },
+              ].map(item => (
+                <div key={item.key} className="flex items-center gap-3">
+                  <div
+                    onClick={() => setSettings(s => ({ ...s, [item.key]: !(s as any)[item.key] }))}
+                    className={`relative w-12 h-6 rounded-full cursor-pointer transition-colors ${(settings as any)[item.key] ? 'bg-cyan-500' : 'bg-gray-600'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${(settings as any)[item.key] ? 'translate-x-7' : 'translate-x-1'}`} />
+                  </div>
+                  <p className="text-sm text-white">{item.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── APPEARANCE ── */}
           {activeTab === 'appearance' && (
             <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-white">Appearance</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
-                    Accent Color
-                  </label>
-                  <div className="flex gap-3">
-                    {['cyan', 'purple', 'emerald', 'pink', 'orange'].map(color => (
-                      <button
-                        key={color}
-                        onClick={() => setSettings(s => ({ ...s, accentColor: color }))}
-                        className={cn(
-                          "w-10 h-10 rounded-lg transition-all",
-                          `bg-${color}-500`,
-                          settings.accentColor === color && "ring-2 ring-white ring-offset-2 ring-offset-[#0a0a0f]"
-                        )}
-                      />
-                    ))}
-                  </div>
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Palette className="w-5 h-5 text-cyan-400" />Appearance
+              </h2>
+              <div>
+                <label className="text-xs text-gray-400 mb-2 block">Accent Color</label>
+                <div className="flex gap-3">
+                  {['cyan', 'blue', 'purple', 'green', 'orange'].map(color => (
+                    <button
+                      key={color}
+                      onClick={() => setSettings(s => ({ ...s, accentColor: color }))}
+                      className={`w-8 h-8 rounded-full border-2 transition-transform ${settings.accentColor === color ? 'scale-125 border-white' : 'border-transparent'}`}
+                      style={{ backgroundColor: { cyan: '#06b6d4', blue: '#3b82f6', purple: '#8b5cf6', green: '#22c55e', orange: '#f97316' }[color] }}
+                    />
+                  ))}
                 </div>
               </div>
             </div>
           )}
+
         </div>
       </div>
     </div>

@@ -1,30 +1,42 @@
 services:
   - type: web
     name: dave-social-ai
-    runtime: node
+    runtime: docker
+    dockerfilePath: ./Dockerfile
     plan: free
-    buildCommand: npm install && npx prisma generate && npm run build
-    startCommand: npm start
+    region: singapore         # Closest free region to Shanghai
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: TZ
+        value: Asia/Shanghai
       - key: DATABASE_URL
-        value: file:./dev.db
+        value: file:./data/prod.db
       - key: ENCRYPTION_KEY
         generateValue: true
-      - key: COMFYUI_URL
+      - key: NEXT_PUBLIC_APP_URL
         sync: false
-      - key: OPENAI_API_KEY
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TELEGRAM_API_ID
+        sync: false
+      - key: TELEGRAM_API_HASH
         sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_CHAT_ID
         sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: COMFYUI_API_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
       - key: BRAND_A_NAME
-        value: VelocityEdge
-      - key: BRAND_B_NAME
         value: ChuangYe
+      - key: BRAND_B_NAME
+        value: VelocityEdge
     disk:
       name: dave-data
       mountPath: /app/data

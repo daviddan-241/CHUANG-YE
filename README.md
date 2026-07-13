@@ -1,258 +1,186 @@
-# DAVE Social AI
+# DAVE Social AI 🚀
 
 **Dashboard for Autonomous Virtual Engagement**
 
-A fully automated social media management system with AI-powered content generation, human-like browser automation, and multi-platform support.
+A fully automated social media management system with real AI content generation (free), real Telegram user login (phone number → SMS code), human-like browser automation from Shanghai, and a production-ready Docker image for Render hosting.
 
-![DAVE Social AI](https://img.shields.io/badge/DAVE-Social%20AI-06b6d4?style=for-the-badge&logo=robot&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript&logoColor=white)
-![Playwright](https://img.shields.io/badge/Playwright-1.61-green?style=for-the-badge&logo=playwright&logoColor=white)
+![DAVE](https://img.shields.io/badge/DAVE-Social%20AI-06b6d4?style=for-the-badge&logo=robot&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ed?style=for-the-badge&logo=docker)
+![Free AI](https://img.shields.io/badge/AI-Groq%20Free-22c55e?style=for-the-badge)
 
-## 🚀 Features
+---
 
-### Core Capabilities
+## ✅ What's Real
 
-- **Multi-Platform Support**: Twitter/X, Telegram, Instagram, Facebook, Xiaohongshu (RED), WeChat, Douyin
-- **AI Content Generation**: Generate engaging posts tailored to each platform
-- **Image Generation**: Create consistent, professional images using ComfyUI/Stable Diffusion XL
-- **Browser Automation**: Human-like behavior with Playwright (stealth mode, random delays, natural mouse movements)
-- **Smart Scheduling**: Optimal posting times based on analytics
-- **Auto-Engagement**: Like, comment, follow, and boost engagement automatically
-- **Style Learning**: Learn from your existing posts to match your writing style
-- **Multi-Brand Support**: Run two personas/brands simultaneously
+| Feature | Status | Details |
+|---|---|---|
+| **AI Content** | ✅ Real | Free Groq API — llama-3.3-70b |
+| **Telegram Login** | ✅ Real | Phone number + SMS code via GramJS |
+| **Browser Automation** | ✅ Real | Playwright stealth, Shanghai location |
+| **Docker Image** | ✅ Real | Chromium + Chinese fonts baked in |
+| **Scheduler** | ✅ Real | BullMQ + node-cron |
+| **Analytics** | ✅ Real | Prisma SQLite DB |
+| **DM Auto-reply** | ✅ Real | AI-powered via Groq |
 
-### Dashboard Features
+---
 
-- 📊 Real-time analytics and engagement metrics
-- 📅 Calendar-based content scheduler
-- 🎨 AI image lab with reference photo support
-- 🧠 Memory system for learned preferences
-- 📝 Detailed activity logs
-- ⚙️ Comprehensive settings
+## 🚀 Deploy on Render (Free)
 
-## 📋 Prerequisites
+### 1. Push to GitHub
+Already done — your repo is at `https://github.com/daviddan-241/CHUANG-YE`
 
-- Node.js 18+ 
-- npm or yarn
-- Playwright browsers (will be installed automatically)
-- Optional: ComfyUI or Stable Diffusion WebUI for image generation
-- Optional: Redis for BullMQ job queue
+### 2. Connect to Render
+1. Go to [render.com](https://render.com) → **New** → **Web Service**
+2. Connect GitHub → select **daviddan-241/CHUANG-YE**
+3. Render detects `render.yaml` automatically (uses Docker)
+4. Click **Create Web Service**
 
-## 🛠️ Installation
+### 3. Set Environment Variables in Render Dashboard
 
-### 1. Clone the repository
+| Variable | Value | Where to get |
+|---|---|---|
+| `GROQ_API_KEY` | `gsk_...` | [console.groq.com](https://console.groq.com) — FREE |
+| `TELEGRAM_API_ID` | `12345678` | [my.telegram.org](https://my.telegram.org/apps) → API development tools |
+| `TELEGRAM_API_HASH` | `abc123...` | Same page as above |
+| `ENCRYPTION_KEY` | random string | Render auto-generates one |
+| `NEXT_PUBLIC_APP_URL` | your Render URL | After first deploy |
+
+### 4. Telegram Phone Login (after deploy)
+1. Open your deployed app → **Settings** → **Telegram Login**
+2. Enter your API ID + API Hash from step above
+3. Enter your phone number (e.g. `+8613800138000`)
+4. Enter the SMS code Telegram sends you
+5. Done — DAVE is logged in as a real Telegram user
+
+---
+
+## 🛠️ Local Development
 
 ```bash
-git clone https://github.com/yourusername/dave-social-ai.git
-cd dave-social-ai
-```
+# 1. Clone
+git clone https://github.com/daviddan-241/CHUANG-YE.git
+cd CHUANG-YE
 
-### 2. Install dependencies
-
-```bash
+# 2. Install
 npm install
-```
 
-### 3. Set up environment variables
+# 3. Set up env
+cp .env.example .env
+# Edit .env — add GROQ_API_KEY at minimum
 
-Create a `.env` file in the root directory:
-
-```env
-# Database
-DATABASE_URL="file:./dev.db"
-
-# Image Generation API (optional)
-COMFYUI_API_URL="http://localhost:8188"
-SD_API_URL="http://localhost:7860"
-
-# Redis (optional, for BullMQ)
-REDIS_URL="redis://localhost:6379"
-
-# Encryption Key (for session storage)
-ENCRYPTION_KEY="your-secure-encryption-key-here"
-
-# API Keys (optional)
-OPENAI_API_KEY="your-openai-api-key"
-```
-
-### 4. Set up the database
-
-```bash
-npm run db:generate
+# 4. Database
 npm run db:push
-```
 
-### 5. Install Playwright browsers
+# 5. Install Playwright Chromium
+npm run playwright:install
 
-```bash
-npx playwright install chromium
-```
-
-### 6. Run the development server
-
-```bash
+# 6. Run
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to access the dashboard.
+Visit http://localhost:3000
 
-## 🎯 Usage
+---
 
-### Quick Start
+## 🤖 Free AI Setup
 
-1. **Connect Platforms**: Navigate to the Platforms page and connect your social media accounts
-2. **Generate Content**: Use the Content Studio to create AI-powered posts
-3. **Schedule Posts**: Set up automated posting schedules
-4. **Monitor Engagement**: Track performance in the Analytics dashboard
+DAVE uses **Groq** — completely free, very fast:
 
-### Using the DAVE Assistant
+1. Go to [console.groq.com](https://console.groq.com)
+2. Sign up (free, no credit card)
+3. Create API Key
+4. Set `GROQ_API_KEY=gsk_...` in your environment
 
-The built-in DAVE Assistant can help you:
-- Generate posts on any topic
-- Create images for your content
-- Schedule posts
-- Analyze engagement metrics
-- Manage your accounts
+**Models used:**
+- `llama-3.3-70b-versatile` — main content generation (best quality)
+- `llama-3.1-8b-instant` — DM replies and quick tasks (fastest)
 
-Simply type your request in the assistant panel!
+No OpenAI key needed.
 
-### Browser Automation
+---
 
-DAVE uses Playwright for browser automation with these features:
-- **Stealth Mode**: Bypasses bot detection
-- **Human-like Behavior**: Random delays, natural mouse movements, realistic typing
-- **Session Persistence**: Saves and restores login sessions
-- **Visible Mode**: Watch automation in real-time (toggle in settings)
+## 📱 Real Telegram Login
 
-### Image Generation
+DAVE logs in as a real Telegram user (not just a bot) using your phone number:
 
-DAVE supports multiple image generation backends:
+**Requirements:**
+- Your Telegram account (any phone number)
+- Free API credentials from [my.telegram.org](https://my.telegram.org/apps):
+  1. Log in with your phone
+  2. Click "API development tools"
+  3. Fill in App name (e.g. "DAVE") and Platform (Other)
+  4. Copy `App api_id` and `App api_hash`
 
-1. **ComfyUI** (recommended): Full-featured, local generation
-2. **Stable Diffusion WebUI**: Alternative local option
-3. **Placeholder**: Fallback for testing
+**What DAVE can do as a real user:**
+- Post to any group/channel you're a member of
+- Send and receive DMs
+- Auto-reply to trigger keywords
+- Monitor multiple groups
+- Join channels
 
-To set up ComfyUI:
-1. Install [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
-2. Download SDXL models
-3. Start ComfyUI with API enabled
-4. Set `COMFYUI_API_URL` in your `.env` file
+---
+
+## 🌏 China/Shanghai Configuration
+
+All browser automation runs as if from Shanghai:
+- **Timezone:** Asia/Shanghai (UTC+8)
+- **Locale:** zh-CN
+- **Geolocation:** 121.47°E, 31.23°N (Shanghai)
+- **Language headers:** zh-CN,zh;q=0.9,en;q=0.8
+- **User agents:** Windows/Chrome (most common in China)
+- **Docker fonts:** Noto CJK (Chinese characters render correctly)
+
+---
+
+## 💰 Make Money Features
+
+| Feature | How it makes money |
+|---|---|
+| **AI Content Studio** | Generate viral posts → grow following → sell products |
+| **Telegram Auto-DM** | Keyword triggers → send product links → conversions |
+| **Smart Scheduling** | Post at peak hours → more reach → more sales |
+| **Multi-Brand** | Run ChuangYe + VelocityEdge simultaneously |
+| **Analytics** | Track what converts → double down |
+| **Image Lab** | Professional product images → higher CTR |
+
+---
 
 ## 📁 Project Structure
 
 ```
-dave-social-ai/
-├── src/
-│   ├── app/
-│   │   ├── api/                    # API routes
-│   │   │   ├── content/           # Content generation
-│   │   │   ├── images/            # Image generation
-│   │   │   └── scheduler/         # Job scheduling
-│   │   ├── dashboard/             # Dashboard page
-│   │   ├── platforms/             # Platform management
-│   │   ├── content-studio/        # Content creation
-│   │   ├── image-lab/             # Image generation
-│   │   ├── scheduler/             # Post scheduling
-│   │   ├── analytics/             # Engagement analytics
-│   │   ├── memory/                # Style & preferences
-│   │   ├── settings/              # Configuration
-│   │   └── logs/                  # Activity logs
-│   ├── components/
-│   │   ├── layout/                # Layout components
-│   │   ├── dashboard/             # Dashboard widgets
-│   │   └── ui/                    # Reusable UI components
-│   ├── lib/
-│   │   ├── automation/            # Browser automation
-│   │   │   ├── browser.ts         # Playwright wrapper
-│   │   │   ├── twitter.ts         # Twitter automation
-│   │   │   └── ...                # Other platforms
-│   │   ├── services/              # Core services
-│   │   │   ├── contentGenerator.ts
-│   │   │   ├── imageGenerator.ts
-│   │   │   └── scheduler.ts
-│   │   └── utils.ts               # Utility functions
-│   ├── stores/                    # Zustand state management
-│   └── types/                     # TypeScript types
-├── prisma/
-│   └── schema.prisma              # Database schema
-├── public/
-│   ├── images/                    # Generated images
-│   └── sessions/                  # Browser sessions
-└── docker/                        # Docker configuration
+src/
+├── app/
+│   ├── dashboard/         # Main dashboard
+│   ├── content-studio/    # AI post generation
+│   ├── analytics/         # Performance metrics
+│   ├── platforms/         # Platform connections
+│   ├── image-lab/         # AI image generation
+│   ├── settings/          # Config + Telegram login
+│   └── api/
+│       ├── telegram/
+│       │   ├── auth/phone/ # Send SMS code
+│       │   ├── auth/code/  # Verify code
+│       │   ├── auth/status/# Check connection
+│       │   └── send/       # Send message
+│       └── content/generate/
+├── lib/
+│   ├── telegram/client.ts      # GramJS real user login
+│   ├── ai/groq-client.ts       # Free Groq AI
+│   ├── automation/browser.ts   # Playwright (Shanghai)
+│   ├── services/contentGenerator.ts
+│   └── orchestrator/telegram-manager.ts
+prisma/schema.prisma             # Database schema
+Dockerfile                       # Production image
+render.yaml                      # Render deployment config
 ```
-
-## 🔧 Configuration
-
-### Platform Settings
-
-Each platform can be configured with:
-- **Fingerprint**: Browser fingerprint to use
-- **Proxy**: Optional proxy settings
-- **Posting Limits**: Maximum posts per day
-- **Engagement Rules**: Auto-like, auto-follow settings
-
-### Automation Settings
-
-- **Auto-Post**: Enable/disable automatic posting
-- **Auto-Reply**: Respond to mentions and DMs
-- **Engagement Boost**: Automatically engage with relevant content
-- **Posting Frequency**: How often to post
-- **Daily Limits**: Maximum actions per day
-
-## 🐳 Docker Deployment
-
-### Build the Docker image
-
-```bash
-docker build -t dave-social-ai .
-```
-
-### Run with Docker Compose
-
-```bash
-docker-compose up -d
-```
-
-### Deploy to Render.com
-
-1. Fork this repository
-2. Connect to Render.com
-3. Create a new Web Service
-4. Use the provided `render.yaml` configuration
-
-### Deploy to Vercel
-
-1. Push to GitHub
-2. Import to Vercel
-3. Configure environment variables
-4. Deploy
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Next.js](https://nextjs.org/) - The React framework
-- [Playwright](https://playwright.dev/) - Browser automation
-- [Tailwind CSS](https://tailwindcss.com/) - Styling
-- [shadcn/ui](https://ui.shadcn.com/) - UI components
-- [Zustand](https://zustand-demo.pmnd.rs/) - State management
-- [Framer Motion](https://www.framer.com/motion/) - Animations
-
-## ⚠️ Disclaimer
-
-This tool is for educational and legitimate social media management purposes only. Users are responsible for complying with each platform's terms of service. The developers are not responsible for any misuse of this software.
-
-## 📧 Support
-
-For support, please open an issue on GitHub or contact us at support@davesocialai.com
 
 ---
 
-**Built with ❤️ by the DAVE Team**
+## ⚠️ Disclaimer
+
+This tool is for legitimate social media management. Users are responsible for complying with each platform's terms of service.
+
+---
+
+**Built for ChuangYe & VelocityEdge brands 🇨🇳**

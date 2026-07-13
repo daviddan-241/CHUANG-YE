@@ -2,7 +2,7 @@
   "name": "dave-social-ai",
   "version": "1.0.0",
   "private": true,
-  "description": "DAVE Social AI - Dashboard for Autonomous Virtual Engagement",
+  "description": "DAVE Social AI — Dashboard for Autonomous Virtual Engagement",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,7 +12,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "scheduler:start": "tsx src/lib/services/scheduler.ts"
+    "scheduler:start": "tsx src/lib/services/scheduler.ts",
+    "playwright:install": "playwright install chromium --with-deps"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -28,6 +29,7 @@
     "crypto-js": "^4.2.0",
     "date-fns": "^4.4.0",
     "framer-motion": "^12.42.2",
+    "groq-sdk": "^0.7.0",
     "ioredis": "^5.11.1",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",
@@ -40,6 +42,7 @@
     "react-dom": "19.2.4",
     "recharts": "^3.9.2",
     "tailwind-merge": "^3.6.0",
+    "telegram": "^2.22.2",
     "uuid": "^14.0.1",
     "zustand": "^5.0.14"
   },
