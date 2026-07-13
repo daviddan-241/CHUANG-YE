@@ -1,22 +1,36 @@
 services:
   - type: web
     name: dave-social-ai
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    runtime: node
     plan: free
-    region: singapore         # Closest free region to Shanghai
+    region: singapore          # Closest free region to Shanghai
+    buildCommand: >-
+      npm install &&
+      npx playwright install chromium --with-deps &&
+      npx prisma generate &&
+      npm run build
+    startCommand: npx prisma db push --skip-generate && npm start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: TZ
         value: Asia/Shanghai
+      - key: LANG
+        value: zh_CN.UTF-8
+      - key: NODE_VERSION
+        value: "20"
       - key: DATABASE_URL
-        value: file:./data/prod.db
+        value: file:./dave.db
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /opt/render/project/src/.playwright-browsers
+      - key: PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD
+        value: "0"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
       - key: ENCRYPTION_KEY
         generateValue: true
-      - key: NEXT_PUBLIC_APP_URL
-        sync: false
+      # ── Fill these in Render dashboard ──────────────────────
       - key: GROQ_API_KEY
         sync: false
       - key: TELEGRAM_API_ID
@@ -33,11 +47,10 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      # ── Brand names ─────────────────────────────────────────
       - key: BRAND_A_NAME
         value: ChuangYe
       - key: BRAND_B_NAME
         value: VelocityEdge
-    disk:
-      name: dave-data
-      mountPath: /app/data
-      sizeGB: 1
